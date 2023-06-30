@@ -54,3 +54,16 @@ for device in devices:
         net_connect.disconnect()
     except Exception as e:
         print(f"Error occurred for device '{device_name}': {e}")
+        continue
+    except (NetMikoTimeoutException):
+        print("Timeout to device : " + str(device[1]))
+        continue
+    except (AuthenticationException):
+        print("Authentication failure: " + str(device[1]))
+        continue
+    except (SSHException):
+        print("Something with SSH, are you sure SSH is enabled on remote device: " + str(device[1]))
+        continue
+    except Exception as other_error:
+        print("Some other error: " + str(other_error))
+        continue
