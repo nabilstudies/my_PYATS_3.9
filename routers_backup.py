@@ -1,6 +1,8 @@
 import csv
-from netmiko import ConnectHandler
+from netmiko import ConnectHandler, NetmikoAuthenticationException, NetMikoTimeoutException
 import datetime
+from paramiko.ssh_exception import SSHException
+
 
 def connect_to_device(device):
     return ConnectHandler(**device)
@@ -8,16 +10,22 @@ def connect_to_device(device):
 def get_device_config(net_connect, device_name):
     config = net_connect.send_command("show running-config")
     return config
-
-def save_config(device_name, config):
+def save_config(device_name, config, backup_status):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     filename = f"{device_name}_{timestamp}.cfg"
-    with open(filename, "w") as file:
-        file.write(config)
-    print(f"Configuration saved as {filename}")
+    try:
+        with open(filename, "w") as file:
+            file.write(config)
+        print(f"Configuration saved as {filename}")
+        backup_status[device_name] = "Success"  # Update backup status
+    except Exception as e:
+        print(f"Error saving configuration for device '{device_name}': {e}")
+        backup_status[device_name] = "Failure"  # Update backup status
+
 
 # Path to the CSV file
 csv_file = "routers_csv.txt"
+backup_status = {}  # Dictionary to track backup status
 
 # Read the device details from the CSV file
 devices = []
@@ -50,15 +58,17 @@ for device in devices:
         }
         net_connect = connect_to_device(device_info)
         config = get_device_config(net_connect, device_name)
-        save_config(device_name, config)
+
+        save_status = save_config(device_name, config, backup_status)  # Pass backup_status dictionary
+
         net_connect.disconnect()
-    except Exception as e:
-        print(f"Error occurred for device '{device_name}': {e}")
-        continue
+  #  except Exception as e:
+  #      print(f"Error occurred for device '{device_name}': {e}")
+  #      continue
     except (NetMikoTimeoutException):
         print("Timeout to device : " + str(device[1]))
         continue
-    except (AuthenticationException):
+    except (NetmikoAuthenticationException):
         print("Authentication failure: " + str(device[1]))
         continue
     except (SSHException):
@@ -67,3 +77,8 @@ for device in devices:
     except Exception as other_error:
         print("Some other error: " + str(other_error))
         continue
+
+# Print backup status
+print("\nBackup Status:")
+for device_name, status in backup_status.items():
+    print(f"Device '{device_name}': {status}")
