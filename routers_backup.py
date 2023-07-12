@@ -15,6 +15,20 @@ def get_device_config(net_connect, device_name, command):
             return config
         else:
             print("The command should be show running-config")
+    except (NetMikoTimeoutException):
+        print("Timeout to device : " + str(device[0]))
+        #save_status = save_config(device_name, "show running-config", backup_status)  # Pass backup_status dictionary
+        #print(save_status)
+       # continue
+    except (NetmikoAuthenticationException):
+        print("Authentication failure: " + str(device[0]))
+        #continue
+    except (SSHException):
+        print("Something with SSH, are you sure SSH is enabled on remote device: " + str(device[0]))
+        #continue
+    except Exception as other_error:
+        print("Some other error: " + str(other_error))
+        #continue
     except Exception as e:
         print("did not get the device config "+e)
     
@@ -82,13 +96,13 @@ for device in devices:
             "username": device[2],  # Assuming username is in the third column
             "password": device[3],  # Assuming password is in the fourth column
         }
-        print(f'{device_name} this is just for testing' )
-        print(f'{device_info} this is just for testing')
+       # print(f'{device_name} this is just for testing' )
+       # print(f'{device_info} this is just for testing')
         net_connect = connect_to_device(device_info)
-        print(net_connect+"jslkfjlksdjflskdjf")
+        print("jslkfjlksdjflskdjf")
         config = get_device_config(net_connect, device_name,'show running-config')
-        print(backup_status)
-        save_status = save_config(device_name, config, backup_status)  # Pass backup_status dictionary
+        print(config)
+       #******* save_status = save_config(device_name, config, backup_status)  # Pass backup_status dictionary
        
         print(save_status)
         if not save_status:  # Check if save_status is False
@@ -100,17 +114,19 @@ for device in devices:
   #      continue
     except (NetMikoTimeoutException):
         print("Timeout to device : " + str(device[0]))
-        #save_status = save_config(device_name, "show running-config", backup_status)  # Pass backup_status dictionary
-        #print(save_status)
+        backup_status[device_name] = "Failed"
         continue
     except (NetmikoAuthenticationException):
         print("Authentication failure: " + str(device[0]))
+        backup_status[device_name] = "Failed"
         continue
     except (SSHException):
         print("Something with SSH, are you sure SSH is enabled on remote device: " + str(device[0]))
+        backup_status[device_name] = "Failed"
         continue
     except Exception as other_error:
         print("Some other error: " + str(other_error))
+        backup_status[device_name] = "Failed"
         continue
 
 # Print backup status
